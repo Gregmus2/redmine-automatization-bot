@@ -5,7 +5,7 @@ import (
 	"redmine-automatization-bot/redmine"
 )
 
-type Start struct {}
+type Start struct{}
 
 func init() {
 	var handler Start
@@ -13,11 +13,6 @@ func init() {
 }
 
 func (d *Start) Handle(message *tgbotapi.Message, bot *tgbotapi.BotAPI, api *redmine.Api) error {
-	_, err := api.CreateTimeEntry(35300, 0.25, 14, "Кофе")
-	if err != nil {
-		return err
-	}
-
 	msg := tgbotapi.NewMessage(message.Chat.ID, "Choose command")
 	buttons := make([]tgbotapi.KeyboardButton, len(textHandlers))
 	for command := range textHandlers {
@@ -25,7 +20,7 @@ func (d *Start) Handle(message *tgbotapi.Message, bot *tgbotapi.BotAPI, api *red
 	}
 	msg.ReplyMarkup = tgbotapi.NewReplyKeyboard(buttons)
 
-	_, err = bot.Send(msg)
+	_, err := bot.Send(msg)
 	if err != nil {
 		return err
 	}

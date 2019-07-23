@@ -6,11 +6,18 @@ import (
 )
 
 type RedmineApis struct {
-	mx sync.Mutex
+	mx   sync.Mutex
 	apis map[int]*redmine.Api
 }
 
-var redmineApis *RedmineApis
+func NewRedmineApis(userStorage *UserStorage) *RedmineApis {
+	redmineApis = &RedmineApis{apis: make(map[int]*redmine.Api)}
+	for _, user := range userStorage.users {
+		redmineApis.apis[user.Id] = redmine.NewApi(user.RedmineApiKey)
+	}
+
+	return redmineApis
+}
 
 func (apis *RedmineApis) Find(key int) (*redmine.Api, bool) {
 	apis.mx.Lock()

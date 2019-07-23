@@ -7,10 +7,12 @@ import (
 
 type Waiters struct {
 	mx sync.Mutex
-	m map[int]func(message *tgbotapi.Message, bot *tgbotapi.BotAPI)
+	m  map[int]func(message *tgbotapi.Message, bot *tgbotapi.BotAPI)
 }
 
-var waiters *Waiters
+func NewWaiters() *Waiters {
+	return &Waiters{m: make(map[int]func(message *tgbotapi.Message, bot *tgbotapi.BotAPI))}
+}
 
 func (w *Waiters) Find(key int) (func(message *tgbotapi.Message, bot *tgbotapi.BotAPI), bool) {
 	w.mx.Lock()

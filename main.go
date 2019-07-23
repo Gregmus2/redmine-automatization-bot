@@ -5,43 +5,50 @@ import (
 	"github.com/joho/godotenv"
 	"log"
 	"os"
+	"redmine-automatization-bot/bolt"
 	"redmine-automatization-bot/handler"
 	"redmine-automatization-bot/redmine"
-	"redmine-automatization-bot/usr"
 )
 
 var bot *tgbotapi.BotAPI
+var users *UserStorage
+var waiters *Waiters
+var storage Storage
+var redmineApis *RedmineApis
 
 func init() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		panic("Error loading .env file")
 	}
 
 	bot, err = tgbotapi.NewBotAPI(os.Getenv("TOKEN"))
 	if err != nil {
-		log.Panic("Error on init", err)
+		panic(err)
 	}
-
 	bot.Debug = false
 	log.Printf("Authorized on account %s", bot.Self.UserName)
 
-	// todo создать из юзеров
-	redmineApis = &RedmineApis{
-		apis: make(map[int]*redmine.Api),
+	storage = bolt.NewStorage("bot")
+
+	users, err = NewUserStorage(storage)
+	if err != nil {
+		panic(err)
 	}
-	waiters = &Waiters{
-		m: make(map[int]func(message *tgbotapi.Message, bot *tgbotapi.BotAPI)),
-	}
+
+	redmineApis = NewRedmineApis(users)
+	waiters = NewWaiters()
 }
 
 func main() {
+	defer storage.Close()
+
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 
 	updates, err := bot.GetUpdatesChan(u)
 	if err != nil {
-		log.Panic("GetUpdatesChan", err)
+		panic(err)
 	}
 
 	for update := range updates {
@@ -65,7 +72,7 @@ func handle(message *tgbotapi.Message) {
 
 	api, exists := redmineApis.Find(message.From.ID)
 	if !exists {
-		user := usr.Find(message.From.ID)
+		user := users.Find(message.From.ID)
 		if user == nil {
 			sendRegistration(message)
 			return
@@ -83,15 +90,17 @@ func sendRegistration(message *tgbotapi.Message) {
 	_, err := bot.Send(msg)
 	if err != nil {
 		log.Panic(err)
+		return
 	}
 
 	userId := message.From.ID
 	waiters.Save(userId, func(message *tgbotapi.Message, bot *tgbotapi.BotAPI) {
 		apiKey := message.Text
 		// todo validate key
-		user, err := usr.Register(userId, apiKey)
+		user, err := users.Register(userId, apiKey)
 		if err != nil {
 			log.Panic(user, err)
+			return
 		}
 
 		api := redmine.NewApi(apiKey)
@@ -100,6 +109,7 @@ func sendRegistration(message *tgbotapi.Message) {
 		err = (&handler.Start{}).Handle(message, bot, api)
 		if err != nil {
 			log.Panic(user, err)
+			return
 		}
 
 		waiters.Remove(userId)
