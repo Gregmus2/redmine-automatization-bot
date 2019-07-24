@@ -74,19 +74,29 @@ func handle(message *tgbotapi.Message) {
 	if !exists {
 		user := users.Find(message.From.ID)
 		if user == nil {
-			sendRegistration(message)
+			requestRedmineUrl(message)
 			return
 		}
 
-		api = redmine.NewApi(user.RedmineApiKey)
+		if user.RedmineApiKey == "" {
+			requestRedmineApiKey(message)
+			return
+		}
+
+		api, err := redmine.NewApi(user.RedmineUrl, user.RedmineApiKey)
+		if err != nil {
+			log.Panic(err)
+			return
+		}
+
 		redmineApis.Save(message.From.ID, api)
 	}
 
 	handler.Handle(message, bot, api)
 }
 
-func sendRegistration(message *tgbotapi.Message) {
-	msg := tgbotapi.NewMessage(message.Chat.ID, "Please, send your redmine api key")
+func requestRedmineUrl(message *tgbotapi.Message) {
+	msg := tgbotapi.NewMessage(message.Chat.ID, "Please, send base url of your redmine")
 	_, err := bot.Send(msg)
 	if err != nil {
 		log.Panic(err)
@@ -94,24 +104,59 @@ func sendRegistration(message *tgbotapi.Message) {
 	}
 
 	userId := message.From.ID
-	waiters.Save(userId, func(message *tgbotapi.Message, bot *tgbotapi.BotAPI) {
-		apiKey := message.Text
-		// todo validate key
-		user, err := users.Register(userId, apiKey)
+	waiters.Set(userId, func(message *tgbotapi.Message, bot *tgbotapi.BotAPI) {
+		redmineUrl := message.Text
+		user, err := users.Register(userId, redmineUrl)
 		if err != nil {
 			log.Panic(user, err)
 			return
 		}
 
-		api := redmine.NewApi(apiKey)
+		requestRedmineApiKey(message)
+	})
+}
+
+func requestRedmineApiKey(message *tgbotapi.Message) {
+	err := response(message.Chat.ID, "Please, send your redmine api key")
+	if err != nil {
+		log.Panic(err)
+		return
+	}
+
+	userId := message.From.ID
+	waiters.Set(userId, func(message *tgbotapi.Message, bot *tgbotapi.BotAPI) {
+		apiKey := message.Text
+		// todo validate key
+		err := users.AddApiKey(userId, apiKey)
+		if err != nil {
+			log.Panic(userId, err)
+			return
+		}
+
+		user := users.Find(userId)
+		api, err := redmine.NewApi(user.RedmineUrl, user.RedmineApiKey)
+		if err != nil {
+			err := response(message.Chat.ID, err.Error())
+			if err != nil {
+				log.Panic(err)
+				return
+			}
+		}
 		redmineApis.Save(userId, api)
 
 		err = (&handler.Start{}).Handle(message, bot, api)
 		if err != nil {
-			log.Panic(user, err)
+			log.Panic(userId, err)
 			return
 		}
 
 		waiters.Remove(userId)
 	})
+}
+
+func response(chatId int64, text string) error {
+	msg := tgbotapi.NewMessage(chatId, text)
+	_, err := bot.Send(msg)
+
+	return err
 }

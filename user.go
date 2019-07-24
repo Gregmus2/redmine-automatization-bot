@@ -9,6 +9,7 @@ import (
 type User struct {
 	Id            int
 	RedmineApiKey string
+	RedmineUrl    string
 }
 
 type UserStorage struct {
@@ -17,30 +18,38 @@ type UserStorage struct {
 	storage Storage
 }
 
-const COLLECTION string = "users"
+const ApiKeysCollection string = "api_keys"
+const RedmineUrlsCollection string = "redmine_urls"
 
 func NewUserStorage(storage Storage) (*UserStorage, error) {
-	storage.CreateCollectionIfNotExist(COLLECTION)
+	storage.CreateCollectionIfNotExist(RedmineUrlsCollection)
+	storage.CreateCollectionIfNotExist(ApiKeysCollection)
 
 	us := &UserStorage{
 		users:   make(map[int]User),
 		storage: storage,
 	}
 
-	data, err := storage.GetAll(COLLECTION)
+	urls, err := storage.GetAll(RedmineUrlsCollection)
 	if err != nil {
 		return nil, err
 	}
 
-	for k, v := range data {
-		id, err := strconv.Atoi(k)
+	keys, err := storage.GetAll(ApiKeysCollection)
+	if err != nil {
+		return nil, err
+	}
+
+	for id, v := range urls {
+		intId, err := strconv.Atoi(id)
 		if err != nil {
 			return nil, err
 		}
 
-		us.users[id] = User{
-			Id:            id,
-			RedmineApiKey: v,
+		us.users[intId] = User{
+			Id:            intId,
+			RedmineUrl:    v,
+			RedmineApiKey: keys[id],
 		}
 	}
 
@@ -59,22 +68,34 @@ func (us *UserStorage) Find(id int) *User {
 	return &user
 }
 
-func (us *UserStorage) Register(id int, apiKey string) (*User, error) {
+func (us *UserStorage) Register(userId int, redmineUrl string) (*User, error) {
 	us.mx.Lock()
 	defer us.mx.Unlock()
 
-	user, exists := us.users[id]
+	user, exists := us.users[userId]
 	if exists {
 		return &user, errors.New("user already exists")
 	}
 
-	err := us.storage.Put(COLLECTION, strconv.Itoa(id), apiKey)
+	err := us.storage.Put(RedmineUrlsCollection, strconv.Itoa(userId), redmineUrl)
 	if err != nil {
 		return nil, err
 	}
 
-	user = User{Id: id, RedmineApiKey: apiKey}
-	us.users[id] = user
+	user = User{Id: userId, RedmineUrl: redmineUrl}
+	us.users[userId] = user
 
 	return &user, nil
+}
+
+func (us *UserStorage) AddApiKey(userId int, apiKey string) error {
+	err := us.storage.Put(ApiKeysCollection, strconv.Itoa(userId), apiKey)
+	if err != nil {
+		return err
+	}
+
+	user := us.Find(userId)
+	user.RedmineApiKey = apiKey
+
+	return nil
 }

@@ -13,7 +13,16 @@ type RedmineApis struct {
 func NewRedmineApis(userStorage *UserStorage) *RedmineApis {
 	redmineApis = &RedmineApis{apis: make(map[int]*redmine.Api)}
 	for _, user := range userStorage.users {
-		redmineApis.apis[user.Id] = redmine.NewApi(user.RedmineApiKey)
+		if user.RedmineApiKey == "" {
+			continue
+		}
+
+		api, err := redmine.NewApi(user.RedmineUrl, user.RedmineApiKey)
+		if err != nil {
+			panic(err)
+		}
+
+		redmineApis.apis[user.Id] = api
 	}
 
 	return redmineApis

@@ -5,6 +5,7 @@ import (
 	"sync"
 )
 
+// it's handle some user requests, when we wait them for specific action
 type Waiters struct {
 	mx sync.Mutex
 	m  map[int]func(message *tgbotapi.Message, bot *tgbotapi.BotAPI)
@@ -22,7 +23,7 @@ func (w *Waiters) Find(key int) (func(message *tgbotapi.Message, bot *tgbotapi.B
 	return val, ok
 }
 
-func (w *Waiters) Save(key int, value func(message *tgbotapi.Message, bot *tgbotapi.BotAPI)) {
+func (w *Waiters) Set(key int, value func(message *tgbotapi.Message, bot *tgbotapi.BotAPI)) {
 	w.mx.Lock()
 	defer w.mx.Unlock()
 	w.m[key] = value
