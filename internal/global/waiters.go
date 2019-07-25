@@ -1,4 +1,4 @@
-package internal
+package global
 
 import (
 	"github.com/go-telegram-bot-api/telegram-bot-api"
@@ -8,14 +8,14 @@ import (
 // it's handle some user requests, when we wait them for specific action
 type WaiterStorage struct {
 	mx sync.Mutex
-	m  map[int]func(message *tgbotapi.Message)
+	m  map[int]func(message *tgbotapi.Message) tgbotapi.Chattable
 }
 
 func NewWaiters() *WaiterStorage {
-	return &WaiterStorage{m: make(map[int]func(message *tgbotapi.Message))}
+	return &WaiterStorage{m: make(map[int]func(message *tgbotapi.Message) tgbotapi.Chattable)}
 }
 
-func (w *WaiterStorage) Find(key int) (func(message *tgbotapi.Message), bool) {
+func (w *WaiterStorage) Find(key int) (func(message *tgbotapi.Message) tgbotapi.Chattable, bool) {
 	w.mx.Lock()
 	defer w.mx.Unlock()
 	val, ok := w.m[key]
@@ -23,7 +23,7 @@ func (w *WaiterStorage) Find(key int) (func(message *tgbotapi.Message), bool) {
 	return val, ok
 }
 
-func (w *WaiterStorage) Set(key int, value func(message *tgbotapi.Message)) {
+func (w *WaiterStorage) Set(key int, value func(message *tgbotapi.Message) tgbotapi.Chattable) {
 	w.mx.Lock()
 	defer w.mx.Unlock()
 	w.m[key] = value

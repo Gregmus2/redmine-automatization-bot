@@ -4,6 +4,11 @@ import "log"
 
 var CommandHandlers = make(map[string]Handler)
 var TextHandlers = make(map[string]Handler)
+var Waiter *WaiterStorage
+
+func init() {
+	Waiter = NewWaiters()
+}
 
 func RegisterCommand(handler Handler, command string) {
 	if _, exists := CommandHandlers[command]; exists {

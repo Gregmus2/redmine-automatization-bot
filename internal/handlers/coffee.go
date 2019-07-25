@@ -9,8 +9,7 @@ import (
 type Coffee struct{}
 
 func init() {
-	var handler Coffee
-	global.RegisterText(&handler, "coffee")
+	global.RegisterText(&Coffee{}, "coffee")
 }
 
 func (d *Coffee) Handle(message *tgbotapi.Message, api *redmine.Api) (tgbotapi.Chattable, error) {

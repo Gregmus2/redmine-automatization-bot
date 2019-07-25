@@ -9,8 +9,7 @@ import (
 type Daily struct{}
 
 func init() {
-	var handler Daily
-	global.RegisterText(&handler, "daily")
+	global.RegisterText(&Daily{}, "daily")
 }
 
 func (d *Daily) Handle(message *tgbotapi.Message, api *redmine.Api) (tgbotapi.Chattable, error) {

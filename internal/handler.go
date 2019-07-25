@@ -9,7 +9,6 @@ import (
 	"redmine-automatization-bot/internal/redmine"
 )
 
-var waiter *WaiterStorage
 var redmineApis *RedmineApis
 var users *UserStorage
 var storage Storage
@@ -23,7 +22,6 @@ func init() {
 		panic(err)
 	}
 	redmineApis = NewRedmineApis(users)
-	waiter = NewWaiters()
 }
 
 func handle(message *tgbotapi.Message) {
@@ -33,10 +31,9 @@ func handle(message *tgbotapi.Message) {
 	}
 
 	if message.IsCommand() {
-		exists := handleCommand(message, api)
-		if exists {
-			return
-		}
+		global.Waiter.Remove(message.From.ID)
+		handleCommand(message, api)
+		return
 	}
 
 	exists := handleWaiters(message)
@@ -79,9 +76,17 @@ func authorize(message *tgbotapi.Message) (*redmine.Api, bool) {
 }
 
 func handleWaiters(message *tgbotapi.Message) bool {
-	waiter, exists := waiter.Find(message.From.ID)
+	callable, exists := global.Waiter.Find(message.From.ID)
 	if exists {
-		waiter(message)
+		msg := callable(message)
+		if msg == nil {
+			return true
+		}
+
+		_, err := Bot.Send(msg)
+		if err != nil {
+			log.Panic(err)
+		}
 
 		return true
 	}
@@ -89,10 +94,10 @@ func handleWaiters(message *tgbotapi.Message) bool {
 	return false
 }
 
-func handleCommand(message *tgbotapi.Message, api *redmine.Api) bool {
+func handleCommand(message *tgbotapi.Message, api *redmine.Api) {
 	handler, exists := global.CommandHandlers[message.Command()]
 	if !exists {
-		return false
+		return
 	}
 
 	msg, err := handler.Handle(message, api)
@@ -104,8 +109,6 @@ func handleCommand(message *tgbotapi.Message, api *redmine.Api) bool {
 	if err != nil {
 		log.Panic(err)
 	}
-
-	return true
 }
 
 func handleText(message *tgbotapi.Message, api *redmine.Api) {
@@ -134,73 +137,46 @@ func requestRedmineUrl(message *tgbotapi.Message) {
 	}
 
 	userId := message.From.ID
-	waiter.Set(userId, func(message *tgbotapi.Message) {
+	global.Waiter.Set(userId, func(message *tgbotapi.Message) tgbotapi.Chattable {
 		redmineUrl := message.Text
 		user, err := users.Register(userId, redmineUrl)
 		if err != nil {
 			log.Panic(user, err)
-			return
+			return nil
 		}
 
 		requestRedmineApiKey(message)
+
+		return tgbotapi.NewMessage(message.Chat.ID, "Please, send your redmine api key")
 	})
 }
 
 func requestRedmineApiKey(message *tgbotapi.Message) {
-	err := response(message.Chat.ID, "Please, send your redmine api key")
-	if err != nil {
-		log.Panic(err)
-		return
-	}
-
 	userId := message.From.ID
-	waiter.Set(userId, func(message *tgbotapi.Message) {
+	global.Waiter.Set(userId, func(message *tgbotapi.Message) tgbotapi.Chattable {
 		apiKey := message.Text
 		// todo validate key
 		err := users.AddApiKey(userId, apiKey)
 		if err != nil {
 			log.Panic(userId, err)
-			return
+			return nil
 		}
 
 		user := users.Find(userId)
 		api, err := redmine.NewApi(user.RedmineUrl, user.RedmineApiKey)
 		if err != nil {
-			err := response(message.Chat.ID, err.Error())
-			if err != nil {
-				log.Panic(err)
-				return
-			}
+			return tgbotapi.NewMessage(message.Chat.ID, err.Error())
 		}
 		redmineApis.Save(userId, api)
 
 		msg, err := (&handlers.Start{}).Handle(message, api)
 		if err != nil {
 			log.Panic(userId, err)
-			return
+			return nil
 		}
 
-		_, err = Bot.Send(msg)
-		if err != nil {
-			log.Panic(err)
-		}
+		global.Waiter.Remove(userId)
 
-		waiter.Remove(userId)
+		return msg
 	})
-}
-
-func response(chatId int64, text string) error {
-	msg := tgbotapi.NewMessage(chatId, text)
-	_, err := Bot.Send(msg)
-
-	return err
-}
-
-func SimpleResponse(inputMessage *tgbotapi.Message, text string) {
-	msg := tgbotapi.NewMessage(inputMessage.Chat.ID, text)
-
-	_, err := Bot.Send(msg)
-	if err != nil {
-		log.Panic("Error on send response", err)
-	}
 }

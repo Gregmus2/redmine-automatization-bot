@@ -9,8 +9,7 @@ import (
 type Start struct{}
 
 func init() {
-	var handler Start
-	global.RegisterCommand(&handler, "start")
+	global.RegisterCommand(&Start{}, "start")
 }
 
 func (d *Start) Handle(message *tgbotapi.Message, api *redmine.Api) (tgbotapi.Chattable, error) {
