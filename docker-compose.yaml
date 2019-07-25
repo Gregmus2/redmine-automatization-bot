@@ -1,7 +1,7 @@
 version: '3.7'
 services:
     go:
-        build: docker
+        build: build
         volumes:
           - .:/go/src/redmine-automatization-bot
         working_dir: /go/src/redmine-automatization-bot

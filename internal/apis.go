@@ -1,7 +1,7 @@
-package main
+package internal
 
 import (
-	"redmine-automatization-bot/redmine"
+	"redmine-automatization-bot/internal/redmine"
 	"sync"
 )
 

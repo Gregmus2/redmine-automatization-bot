@@ -1,4 +1,4 @@
-package main
+package internal
 
 import (
 	"golang.org/x/tools/go/ssa/interp/testdata/src/errors"
