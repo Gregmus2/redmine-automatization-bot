@@ -15,8 +15,9 @@ func init() {
 }
 
 func (d *TimeEntry) Handle(message *tgbotapi.Message, api *redmine.Api) (tgbotapi.Chattable, error) {
-	msg := tgbotapi.NewMessage(message.Chat.ID, "Enter data in format ISSUE_ID HOURS ACTIVITY_ID COMMENT")
-	// todo высылать список активностей. Парсить заранее с time_entry.json запроса
+	text := "Enter data in format ISSUE_ID HOURS ACTIVITY_ID COMMENT\nAvailable activities:\n" + api.Activities.ToText()
+	msg := tgbotapi.NewMessage(message.Chat.ID, text)
+
 	global.Waiter.Set(message.From.ID, func(message *tgbotapi.Message) tgbotapi.Chattable {
 		args := strings.Split(message.Text, " ")
 		if len(args) < 3 {

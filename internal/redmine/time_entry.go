@@ -19,7 +19,7 @@ type TimeEntryBody struct {
 
 const TimeEntriesUri string = "time_entries.json"
 
-func (api *Api) CreateTimeEntry(issue uint, hours float32, activity uint8, comments string) (string, error) {
+func (api *Api) CreateTimeEntry(issue uint, hours float32, activity uint8, comments string) ([]byte, error) {
 	date := time.Now().Format("2006-01-02")
 	timeEntry := TimeEntry{TimeEntry: TimeEntryBody{
 		IssueId:    issue,
@@ -31,7 +31,7 @@ func (api *Api) CreateTimeEntry(issue uint, hours float32, activity uint8, comme
 
 	jsonBuffer, err := json.Marshal(timeEntry)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	return api.Create(TimeEntriesUri, jsonBuffer)

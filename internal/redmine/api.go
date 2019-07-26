@@ -10,8 +10,9 @@ import (
 )
 
 type Api struct {
-	url    string
-	apiKey string
+	url        string
+	apiKey     string
+	Activities Activities
 }
 
 func init() {
@@ -28,38 +29,41 @@ func NewApi(apiUrl string, apiKey string) (*Api, error) {
 		apiUrl = apiUrl + "/"
 	}
 
-	return &Api{url: apiUrl, apiKey: apiKey}, nil
+	api := &Api{url: apiUrl, apiKey: apiKey, Activities: NewActivities()}
+	go api.CollectActivities()
+
+	return api, nil
 }
 
-func (api *Api) Create(method string, jsonBuffer []byte) (string, error) {
+func (api *Api) Create(method string, jsonBuffer []byte) ([]byte, error) {
 	req, err := http.NewRequest(
 		"POST",
 		api.url+method,
 		bytes.NewReader(jsonBuffer),
 	)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	return api.request(req)
 }
 
-func (api *Api) request(req *http.Request) (string, error) {
+func (api *Api) request(req *http.Request) ([]byte, error) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Redmine-API-Key", api.apiKey)
 
 	client := &http.Client{}
 	res, err := client.Do(req)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	defer res.Body.Close()
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return string(body), nil
+	return body, nil
 }
