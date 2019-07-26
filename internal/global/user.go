@@ -1,4 +1,4 @@
-package internal
+package global
 
 import (
 	"golang.org/x/tools/go/ssa/interp/testdata/src/errors"
@@ -77,7 +77,7 @@ func (us *UserStorage) Register(userId int, redmineUrl string) (*User, error) {
 		return &user, errors.New("user already exists")
 	}
 
-	err := us.storage.Put(RedmineUrlsCollection, strconv.Itoa(userId), redmineUrl)
+	err := us.storage.Put(RedmineUrlsCollection, strconv.Itoa(userId), []byte(redmineUrl))
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +89,7 @@ func (us *UserStorage) Register(userId int, redmineUrl string) (*User, error) {
 }
 
 func (us *UserStorage) AddApiKey(userId int, apiKey string) error {
-	err := us.storage.Put(ApiKeysCollection, strconv.Itoa(userId), apiKey)
+	err := us.storage.Put(ApiKeysCollection, strconv.Itoa(userId), []byte(apiKey))
 	if err != nil {
 		return err
 	}

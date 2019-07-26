@@ -5,6 +5,7 @@ import (
 	"github.com/joho/godotenv"
 	"log"
 	"os"
+	"redmine-automatization-bot/internal/global"
 )
 
 var Bot *tgbotapi.BotAPI
@@ -24,7 +25,7 @@ func init() {
 }
 
 func Serve() {
-	defer storage.Close()
+	defer global.Stor.Close()
 
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60

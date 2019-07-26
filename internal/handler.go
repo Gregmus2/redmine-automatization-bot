@@ -3,26 +3,10 @@ package internal
 import (
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"log"
-	"redmine-automatization-bot/internal/bolt"
 	"redmine-automatization-bot/internal/global"
-	"redmine-automatization-bot/internal/handlers"
+	_ "redmine-automatization-bot/internal/handlers"
 	"redmine-automatization-bot/internal/redmine"
 )
-
-var redmineApis *RedmineApis
-var users *UserStorage
-var storage Storage
-
-func init() {
-	storage = bolt.NewStorage("bot")
-
-	var err error
-	users, err = NewUserStorage(storage)
-	if err != nil {
-		panic(err)
-	}
-	redmineApis = NewRedmineApis(users)
-}
 
 func handle(message *tgbotapi.Message) {
 	api, status := authorize(message)
@@ -45,14 +29,14 @@ func handle(message *tgbotapi.Message) {
 }
 
 func authorize(message *tgbotapi.Message) (*redmine.Api, bool) {
-	api, exists := redmineApis.Find(message.From.ID)
+	api, exists := global.RA.Find(message.From.ID)
 	if !exists {
 		exists := handleWaiters(message)
 		if exists == true {
 			return nil, false
 		}
 
-		user := users.Find(message.From.ID)
+		user := global.Users.Find(message.From.ID)
 		if user == nil {
 			requestRedmineUrl(message)
 			return nil, false
@@ -69,7 +53,7 @@ func authorize(message *tgbotapi.Message) (*redmine.Api, bool) {
 			return nil, false
 		}
 
-		redmineApis.Save(message.From.ID, api)
+		global.RA.Save(message.From.ID, api)
 	}
 
 	return api, true
@@ -139,7 +123,7 @@ func requestRedmineUrl(message *tgbotapi.Message) {
 	userId := message.From.ID
 	global.Waiter.Set(userId, func(message *tgbotapi.Message) tgbotapi.Chattable {
 		redmineUrl := message.Text
-		user, err := users.Register(userId, redmineUrl)
+		user, err := global.Users.Register(userId, redmineUrl)
 		if err != nil {
 			log.Panic(user, err)
 			return nil
@@ -156,27 +140,21 @@ func requestRedmineApiKey(message *tgbotapi.Message) {
 	global.Waiter.Set(userId, func(message *tgbotapi.Message) tgbotapi.Chattable {
 		apiKey := message.Text
 		// todo validate key
-		err := users.AddApiKey(userId, apiKey)
+		err := global.Users.AddApiKey(userId, apiKey)
 		if err != nil {
 			log.Panic(userId, err)
 			return nil
 		}
 
-		user := users.Find(userId)
+		user := global.Users.Find(userId)
 		api, err := redmine.NewApi(user.RedmineUrl, user.RedmineApiKey)
 		if err != nil {
 			return tgbotapi.NewMessage(message.Chat.ID, err.Error())
 		}
-		redmineApis.Save(userId, api)
 
-		msg, err := (&handlers.Start{}).Handle(message, api)
-		if err != nil {
-			log.Panic(userId, err)
-			return nil
-		}
-
+		global.RA.Save(userId, api)
 		global.Waiter.Remove(userId)
 
-		return msg
+		return tgbotapi.NewMessage(message.Chat.ID, "Welcome")
 	})
 }

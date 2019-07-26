@@ -40,11 +40,27 @@ func (b *Storage) GetAll(collection string) (map[string]string, error) {
 	return values, err
 }
 
-func (b *Storage) Put(collection string, key string, value string) error {
+func (b *Storage) GetAllRaw(collection string) (map[string][]byte, error) {
+	values := make(map[string][]byte)
+	err := b.db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(collection))
+		err := bucket.ForEach(func(k []byte, v []byte) error {
+			values[string(k)] = v
+
+			return nil
+		})
+
+		return err
+	})
+
+	return values, err
+}
+
+func (b *Storage) Put(collection string, key string, value []byte) error {
 	err := b.db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(collection))
 
-		err := bucket.Put([]byte(key), []byte(value))
+		err := bucket.Put([]byte(key), value)
 
 		return err
 	})

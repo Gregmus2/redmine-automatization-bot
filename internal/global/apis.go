@@ -1,4 +1,4 @@
-package internal
+package global
 
 import (
 	"redmine-automatization-bot/internal/redmine"
@@ -11,7 +11,7 @@ type RedmineApis struct {
 }
 
 func NewRedmineApis(userStorage *UserStorage) *RedmineApis {
-	redmineApis = &RedmineApis{apis: make(map[int]*redmine.Api)}
+	redmineApis := &RedmineApis{apis: make(map[int]*redmine.Api)}
 	for _, user := range userStorage.users {
 		if user.RedmineApiKey == "" {
 			continue
