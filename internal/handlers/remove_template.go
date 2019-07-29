@@ -17,22 +17,22 @@ func (d *RemoveTemplate) Handle(message *tgbotapi.Message, api *redmine.Api) (tg
 	msg := tgbotapi.NewMessage(message.Chat.ID, text)
 
 	global.Waiter.Set(message.From.ID, func(message *tgbotapi.Message) tgbotapi.Chattable {
-		err := global.TS.RemoveTemplate(message.From.ID, message.Text)
-		if err != nil {
-			return tgbotapi.NewMessage(message.Chat.ID, err.Error())
-		}
-
-		return tgbotapi.NewMessage(
-			message.Chat.ID,
-			"Template was delete",
-		)
+		return d.HandleCommandRow(message, api)
 	})
 
 	return msg, nil
 }
 
-func (_ *RemoveTemplate) ValidateArgs(args []string) error {
-	return nil
+func (d *RemoveTemplate) HandleCommandRow(message *tgbotapi.Message, api *redmine.Api) tgbotapi.Chattable {
+	err := global.TS.RemoveTemplate(message.From.ID, message.Text)
+	if err != nil {
+		return tgbotapi.NewMessage(message.Chat.ID, err.Error())
+	}
+
+	return tgbotapi.NewMessage(
+		message.Chat.ID,
+		"Template was delete",
+	)
 }
 
 func (_ *RemoveTemplate) GetRequiredArgs() []string {

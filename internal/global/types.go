@@ -7,7 +7,7 @@ import (
 
 type Handler interface {
 	Handle(message *tgbotapi.Message, api *redmine.Api) (tgbotapi.Chattable, error)
-	ValidateArgs(args []string) error
+	HandleCommandRow(message *tgbotapi.Message, api *redmine.Api) tgbotapi.Chattable
 	GetRequiredArgs() []string
 }
 

@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"errors"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"redmine-automatization-bot/internal/global"
 	"redmine-automatization-bot/internal/redmine"
@@ -14,18 +13,14 @@ func init() {
 }
 
 func (d *Hide) Handle(message *tgbotapi.Message, api *redmine.Api) (tgbotapi.Chattable, error) {
+	return d.HandleCommandRow(message, api), nil
+}
+
+func (d *Hide) HandleCommandRow(message *tgbotapi.Message, api *redmine.Api) tgbotapi.Chattable {
 	msg := tgbotapi.NewMessage(message.Chat.ID, "Done")
 	msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(false)
 
-	return msg, nil
-}
-
-func (_ *Hide) ValidateArgs(args []string) error {
-	if len(args) == 0 {
-		return nil
-	}
-
-	return errors.New("this command have no arguments")
+	return msg
 }
 
 func (_ *Hide) GetRequiredArgs() []string {

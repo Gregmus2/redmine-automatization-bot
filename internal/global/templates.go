@@ -100,3 +100,17 @@ func (ts *TemplateStorage) GetTemplateNames(userId int) []string {
 
 	return names
 }
+
+func (ts *TemplateStorage) GetTemplateCommand(userId int, alias string) (string, bool) {
+	templates, exists := ts.templates[userId]
+	if !exists {
+		return "", false
+	}
+
+	command, exists := templates.TextCommand[alias]
+	if !exists {
+		return "", false
+	}
+
+	return command, true
+}

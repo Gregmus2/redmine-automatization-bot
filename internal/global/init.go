@@ -7,7 +7,6 @@ import (
 )
 
 var CommandHandlers = make(map[string]Handler)
-var TextHandlers = make(map[string]Handler)
 var Waiter *WaiterStorage
 var TS *TemplateStorage
 var RA *RedmineApis
@@ -38,15 +37,6 @@ func RegisterCommand(handler Handler, command string) {
 
 	log.Println("Register", command, "command")
 	CommandHandlers[command] = handler
-}
-
-func RegisterText(handler Handler, text string) {
-	if _, exists := TextHandlers[text]; exists {
-		log.Fatalln(text, "Text command already registered")
-	}
-
-	log.Println("Register", text, "text command")
-	TextHandlers[text] = handler
 }
 
 func GetCommandsHelp() string {

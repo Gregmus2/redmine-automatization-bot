@@ -6,8 +6,10 @@ import (
 	"redmine-automatization-bot/internal/global"
 	_ "redmine-automatization-bot/internal/handlers"
 	"redmine-automatization-bot/internal/redmine"
+	"strings"
 )
 
+// todo unit тесты
 func handle(message *tgbotapi.Message) {
 	api, status := authorize(message)
 	if status == false {
@@ -96,17 +98,30 @@ func handleCommand(message *tgbotapi.Message, api *redmine.Api) {
 }
 
 func handleText(message *tgbotapi.Message, api *redmine.Api) {
-	handler, exists := global.TextHandlers[message.Text]
+	commandString, exists := global.TS.GetTemplateCommand(message.From.ID, message.Text)
 	if !exists {
 		return
 	}
 
-	msg, err := handler.Handle(message, api)
-	if err != nil {
-		log.Panic("Error on handle", err)
+	commandIndex := strings.Index(commandString, " ")
+	var command string
+	if commandIndex == -1 {
+		command = commandString
+		message.Text = ""
+	} else {
+		command = commandString[:commandIndex]
+		message.Text = commandString[commandIndex+1:]
 	}
 
-	_, err = Bot.Send(msg)
+	handler, exists := global.CommandHandlers[command]
+	if !exists {
+		log.Panic(command)
+		return
+	}
+
+	msg := handler.HandleCommandRow(message, api)
+
+	_, err := Bot.Send(msg)
 	if err != nil {
 		log.Panic(err)
 	}
