@@ -3,7 +3,6 @@ package handlers
 import (
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"redmine-automatization-bot/internal/global"
-	"redmine-automatization-bot/internal/redmine"
 )
 
 type Hide struct{}
@@ -12,15 +11,15 @@ func init() {
 	global.RegisterCommand(&Hide{}, "hide")
 }
 
-func (d *Hide) Handle(message *tgbotapi.Message, api *redmine.Api) (tgbotapi.Chattable, error) {
-	return d.HandleCommandRow(message, api), nil
+func (d *Hide) Handle(session *global.SessionData) (tgbotapi.Chattable, error) {
+	return d.HandleCommandRow(session)
 }
 
-func (d *Hide) HandleCommandRow(message *tgbotapi.Message, api *redmine.Api) tgbotapi.Chattable {
-	msg := tgbotapi.NewMessage(message.Chat.ID, "Done")
+func (d *Hide) HandleCommandRow(session *global.SessionData) (tgbotapi.Chattable, error) {
+	msg := tgbotapi.NewMessage(session.Message.Chat.ID, "Done")
 	msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(false)
 
-	return msg
+	return msg, nil
 }
 
 func (_ *Hide) GetRequiredArgs() []string {

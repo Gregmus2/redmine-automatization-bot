@@ -16,9 +16,14 @@ func handle(message *tgbotapi.Message) {
 		return
 	}
 
+	session := global.SessionData{
+		Message: message,
+		Api:     api,
+	}
+
 	if message.IsCommand() {
 		global.Waiter.Remove(message.From.ID)
-		handleCommand(message, api)
+		handleCommand(&session)
 		return
 	}
 
@@ -27,7 +32,7 @@ func handle(message *tgbotapi.Message) {
 		return
 	}
 
-	handleText(message, api)
+	handleText(&session)
 }
 
 func authorize(message *tgbotapi.Message) (*redmine.Api, bool) {
@@ -80,13 +85,13 @@ func handleWaiters(message *tgbotapi.Message) bool {
 	return false
 }
 
-func handleCommand(message *tgbotapi.Message, api *redmine.Api) {
-	handler, exists := global.CommandHandlers[message.Command()]
+func handleCommand(session *global.SessionData) {
+	handler, exists := global.CommandHandlers[session.Message.Command()]
 	if !exists {
 		return
 	}
 
-	msg, err := handler.Handle(message, api)
+	msg, err := handler.Handle(session)
 	if err != nil {
 		log.Panic("Error on handle", err)
 	}
@@ -97,8 +102,8 @@ func handleCommand(message *tgbotapi.Message, api *redmine.Api) {
 	}
 }
 
-func handleText(message *tgbotapi.Message, api *redmine.Api) {
-	commandString, exists := global.TS.GetTemplateCommand(message.From.ID, message.Text)
+func handleText(session *global.SessionData) {
+	commandString, exists := global.TS.GetTemplateCommand(session.Message.From.ID, session.Message.Text)
 	if !exists {
 		return
 	}
@@ -107,10 +112,10 @@ func handleText(message *tgbotapi.Message, api *redmine.Api) {
 	var command string
 	if commandIndex == -1 {
 		command = commandString
-		message.Text = ""
+		session.Message.Text = ""
 	} else {
 		command = commandString[:commandIndex]
-		message.Text = commandString[commandIndex+1:]
+		session.Message.Text = commandString[commandIndex+1:]
 	}
 
 	handler, exists := global.CommandHandlers[command]
@@ -119,7 +124,7 @@ func handleText(message *tgbotapi.Message, api *redmine.Api) {
 		return
 	}
 
-	msg := handler.HandleCommandRow(message, api)
+	msg, _ := handler.HandleCommandRow(session)
 
 	_, err := Bot.Send(msg)
 	if err != nil {

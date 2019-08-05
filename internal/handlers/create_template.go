@@ -3,41 +3,38 @@ package handlers
 import (
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"redmine-automatization-bot/internal/global"
-	"redmine-automatization-bot/internal/redmine"
 	"strings"
 )
 
-type CreateTemplate struct{}
+type CreateTemplate struct{ handler }
 
 func init() {
 	global.RegisterCommand(&CreateTemplate{}, "create_template")
 }
 
-func (d *CreateTemplate) Handle(message *tgbotapi.Message, api *redmine.Api) (tgbotapi.Chattable, error) {
+func (d *CreateTemplate) Handle(session *global.SessionData) (tgbotapi.Chattable, error) {
 	text := "Enter data in format NAME COMMAND ARGS\nAvailable commands:\n" + global.GetCommandsHelp()
-	msg := tgbotapi.NewMessage(message.Chat.ID, text)
+	msg := tgbotapi.NewMessage(session.Message.Chat.ID, text)
 
-	global.Waiter.Set(message.From.ID, func(message *tgbotapi.Message) tgbotapi.Chattable {
-		return d.HandleCommandRow(message, api)
-	})
+	d.handleNextTime(d, session)
 
 	return msg, nil
 }
 
-func (d *CreateTemplate) HandleCommandRow(message *tgbotapi.Message, api *redmine.Api) tgbotapi.Chattable {
-	args := strings.Split(message.Text, " ")
+func (d *CreateTemplate) HandleCommandRow(session *global.SessionData) (tgbotapi.Chattable, error) {
+	args := strings.Split(session.Message.Text, " ")
 	name := args[0]
 
-	err := global.TS.AddTemplate(message.From.ID, name, strings.Join(args[1:], " "))
+	err := global.TS.AddTemplate(session.Message.From.ID, name, strings.Join(args[1:], " "))
 	if err != nil {
-		return tgbotapi.NewMessage(message.Chat.ID, err.Error())
+		return tgbotapi.NewMessage(session.Message.Chat.ID, err.Error()), err
 	}
 
 	return tgbotapi.NewMessage(
-		message.Chat.ID,
+		session.Message.Chat.ID,
 		"New template created, you can use /show command to show all your templates "+
 			"or send name of your template as a message to the bot",
-	)
+	), nil
 }
 
 func (_ *CreateTemplate) GetRequiredArgs() []string {

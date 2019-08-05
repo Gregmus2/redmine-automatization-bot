@@ -1,77 +1,52 @@
 package handlers
 
 import (
-	"fmt"
+	"errors"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"redmine-automatization-bot/internal/global"
 	"redmine-automatization-bot/internal/redmine"
-	"redmine-automatization-bot/internal/utils"
 	"strconv"
 	"strings"
 )
 
-type TimeEntry struct{}
+type TimeEntry struct{ handler }
 
 func init() {
 	global.RegisterCommand(&TimeEntry{}, "time_entry")
 }
 
-func (d *TimeEntry) Handle(message *tgbotapi.Message, api *redmine.Api) (tgbotapi.Chattable, error) {
-	text := "Enter data in format ISSUE_ID HOURS ACTIVITY_ID COMMENT\nAvailable activities:\n" + api.Activities.ToText()
-	msg := tgbotapi.NewMessage(message.Chat.ID, text)
-	// todo Waiter.Remove
-	global.Waiter.Set(message.From.ID, func(message *tgbotapi.Message) tgbotapi.Chattable {
-		return d.HandleCommandRow(message, api)
-	})
+func (d *TimeEntry) Handle(session *global.SessionData) (tgbotapi.Chattable, error) {
+	text := "Enter data in format ISSUE_ID HOURS ACTIVITY_ID COMMENT\nAvailable activities:\n" + session.Api.Activities.ToText()
+	msg := tgbotapi.NewMessage(session.Message.Chat.ID, text)
+
+	d.handleNextTime(d, session)
 
 	return msg, nil
 }
 
-func (d *TimeEntry) HandleCommandRow(message *tgbotapi.Message, api *redmine.Api) tgbotapi.Chattable {
-	commandText := message.Text
-	args := strings.Split(commandText, " ")
+func (d *TimeEntry) HandleCommandRow(session *global.SessionData) (tgbotapi.Chattable, error) {
+	args := strings.Split(session.Message.Text, " ")
 	if len(args) < 3 {
-		return tgbotapi.NewMessage(message.Chat.ID, "Not enough arguments, try again")
+		msg := "not enough arguments, try again"
+
+		return tgbotapi.NewMessage(session.Message.Chat.ID, msg), errors.New(msg)
 	}
 
-	if strings.Index(commandText, "?") != -1 {
-		// собираем переменные аргументы, чтобы запросить у пользователя их значения
-		requiredArgs := d.GetRequiredArgs()
-		missedArguments := make([]string, len(args))
-		for index, argument := range args {
-			if argument == "?" {
-				missedArguments = append(missedArguments, requiredArgs[index])
-			}
-		}
-
-		// todo Waiter.Remove
-		global.Waiter.Set(message.From.ID, func(message *tgbotapi.Message) tgbotapi.Chattable {
-			args := strings.Split(message.Text, " ")
-			formatString := strings.Replace(commandText, "?", "%s", -1)
-			message.Text = fmt.Sprintf(formatString, utils.Iface(args)...)
-
-			return d.HandleCommandRow(message, api)
-		})
-
-		return tgbotapi.NewMessage(
-			message.Chat.ID,
-			"Please, send variable values: "+strings.Join(missedArguments, " "),
-		)
-	}
+	d.handlePlaceholders(d, session)
 
 	issueId, err := strconv.ParseUint(args[0], 10, 0)
 	if err != nil {
-		return tgbotapi.NewMessage(message.Chat.ID, "Wrong ISSUE_ID argument, try again")
+		return d.errorResponse(session.Message, "wrong ISSUE_ID argument, try again")
 	}
 
 	hours, err := strconv.ParseFloat(args[1], 32)
 	if err != nil {
-		return tgbotapi.NewMessage(message.Chat.ID, "Wrong HOURS argument, try again.")
+		return d.errorResponse(session.Message, "wrong HOURS argument, try again.")
 	}
 
 	activityId, err := strconv.ParseUint(args[2], 10, 8)
 	if err != nil {
-		return tgbotapi.NewMessage(message.Chat.ID, "Wrong ACTIVITY_ID argument, try again")
+		return d.errorResponse(session.Message, "wrong ACTIVITY_ID argument, try agai")
 	}
 
 	var comment string
@@ -81,12 +56,18 @@ func (d *TimeEntry) HandleCommandRow(message *tgbotapi.Message, api *redmine.Api
 		comment = args[3]
 	}
 
-	_, err = api.CreateTimeEntry(uint(issueId), float32(hours), uint8(activityId), comment)
+	timeEntryBody := redmine.TimeEntryBody{
+		IssueId:    uint(issueId),
+		Hours:      float32(hours),
+		ActivityId: uint8(activityId),
+		Comments:   comment,
+	}
+	_, err = session.Api.CreateTimeEntry(timeEntryBody)
 	if err != nil {
-		return tgbotapi.NewMessage(message.Chat.ID, err.Error())
+		return tgbotapi.NewMessage(session.Message.Chat.ID, err.Error()), err
 	}
 
-	return tgbotapi.NewMessage(message.Chat.ID, "Done")
+	return tgbotapi.NewMessage(session.Message.Chat.ID, "Done"), nil
 }
 
 // todo need to move validate logic to some general method

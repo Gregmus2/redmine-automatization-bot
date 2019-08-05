@@ -3,7 +3,6 @@ package handlers
 import (
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"redmine-automatization-bot/internal/global"
-	"redmine-automatization-bot/internal/redmine"
 )
 
 type RemoveTemplate struct{}
@@ -12,27 +11,31 @@ func init() {
 	global.RegisterCommand(&RemoveTemplate{}, "remove_template")
 }
 
-func (d *RemoveTemplate) Handle(message *tgbotapi.Message, api *redmine.Api) (tgbotapi.Chattable, error) {
-	text := "Enter name of template which you want to remove"
-	msg := tgbotapi.NewMessage(message.Chat.ID, text)
+func (d *RemoveTemplate) Handle(session *global.SessionData) (tgbotapi.Chattable, error) {
+	msg := tgbotapi.NewMessage(session.Message.Chat.ID, "Enter name of template which you want to remove")
 
-	global.Waiter.Set(message.From.ID, func(message *tgbotapi.Message) tgbotapi.Chattable {
-		return d.HandleCommandRow(message, api)
+	global.Waiter.Set(session.Message.From.ID, func(message *tgbotapi.Message) tgbotapi.Chattable {
+		msg, err := d.HandleCommandRow(session)
+		if err == nil {
+			global.Waiter.Remove(session.Message.From.ID)
+		}
+
+		return msg
 	})
 
 	return msg, nil
 }
 
-func (d *RemoveTemplate) HandleCommandRow(message *tgbotapi.Message, api *redmine.Api) tgbotapi.Chattable {
-	err := global.TS.RemoveTemplate(message.From.ID, message.Text)
+func (d *RemoveTemplate) HandleCommandRow(session *global.SessionData) (tgbotapi.Chattable, error) {
+	err := global.TS.RemoveTemplate(session.Message.From.ID, session.Message.Text)
 	if err != nil {
-		return tgbotapi.NewMessage(message.Chat.ID, err.Error())
+		return tgbotapi.NewMessage(session.Message.Chat.ID, err.Error()), err
 	}
 
 	return tgbotapi.NewMessage(
-		message.Chat.ID,
+		session.Message.Chat.ID,
 		"Template was delete",
-	)
+	), nil
 }
 
 func (_ *RemoveTemplate) GetRequiredArgs() []string {

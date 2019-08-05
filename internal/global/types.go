@@ -6,8 +6,8 @@ import (
 )
 
 type Handler interface {
-	Handle(message *tgbotapi.Message, api *redmine.Api) (tgbotapi.Chattable, error)
-	HandleCommandRow(message *tgbotapi.Message, api *redmine.Api) tgbotapi.Chattable
+	Handle(session *SessionData) (tgbotapi.Chattable, error)
+	HandleCommandRow(session *SessionData) (tgbotapi.Chattable, error)
 	GetRequiredArgs() []string
 }
 
@@ -17,4 +17,9 @@ type Storage interface {
 	GetAllRaw(collection string) (map[string][]byte, error)
 	Put(collection string, key string, value []byte) error
 	CreateCollectionIfNotExist(collection string)
+}
+
+type SessionData struct {
+	Message *tgbotapi.Message
+	Api     *redmine.Api
 }
