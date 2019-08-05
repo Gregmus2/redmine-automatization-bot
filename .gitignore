@@ -1,5 +1,4 @@
 .idea
 .env
 redmine-automatization-bot
-vendor
 bot.db

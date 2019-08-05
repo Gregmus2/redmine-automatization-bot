@@ -1,7 +1,8 @@
 version: '3.7'
 services:
     go:
-        build: build
+        image: golang
         volumes:
-          - .:/go/src/redmine-automatization-bot
-        working_dir: /go/src/redmine-automatization-bot
+          - .:/src/redmine-automatization-bot
+        working_dir: /src/redmine-automatization-bot
+        entrypoint: 'sh init.sh'
