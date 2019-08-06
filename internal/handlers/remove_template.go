@@ -38,6 +38,6 @@ func (d *RemoveTemplate) HandleCommandRow(session *global.SessionData) (tgbotapi
 	), nil
 }
 
-func (_ *RemoveTemplate) GetRequiredArgs() []string {
+func (_ *RemoveTemplate) ArgsInOrder() []string {
 	return []string{"NAME"}
 }

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"redmine-automatization-bot/internal/global"
-	"redmine-automatization-bot/internal/utils"
+	"redmine-automatization-bot/pkg/convert"
 	"strings"
 )
 
@@ -18,7 +18,7 @@ func (_ *handler) handlePlaceholders(h global.Handler, session *global.SessionDa
 
 	args := strings.Split(session.Message.Text, " ")
 	// собираем переменные аргументы, чтобы запросить у пользователя их значения
-	requiredArgs := h.GetRequiredArgs()
+	requiredArgs := h.ArgsInOrder()
 	missedArguments := make([]string, len(args))
 	for index, argument := range args {
 		if argument == "?" {
@@ -29,7 +29,7 @@ func (_ *handler) handlePlaceholders(h global.Handler, session *global.SessionDa
 	global.Waiter.Set(session.Message.From.ID, func(message *tgbotapi.Message) tgbotapi.Chattable {
 		args := strings.Split(message.Text, " ")
 		formatString := strings.Replace(session.Message.Text, "?", "%s", -1)
-		message.Text = fmt.Sprintf(formatString, utils.Iface(args)...)
+		message.Text = fmt.Sprintf(formatString, convert.Iface(args)...)
 		tmpSession := global.SessionData{
 			Message: message,
 			Api:     session.Api,
@@ -53,7 +53,10 @@ func (_ *handler) handlePlaceholders(h global.Handler, session *global.SessionDa
 // It will handle next user text message
 func (_ *handler) handleNextTime(d global.Handler, session *global.SessionData) {
 	global.Waiter.Set(session.Message.From.ID, func(message *tgbotapi.Message) tgbotapi.Chattable {
-		msg, err := d.HandleCommandRow(session)
+		msg, err := d.HandleCommandRow(&global.SessionData{
+			Message: message,
+			Api:     session.Api,
+		})
 		if err == nil {
 			global.Waiter.Remove(session.Message.From.ID)
 		}

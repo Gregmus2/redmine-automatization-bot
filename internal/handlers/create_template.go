@@ -13,7 +13,7 @@ func init() {
 }
 
 func (d *CreateTemplate) Handle(session *global.SessionData) (tgbotapi.Chattable, error) {
-	text := "Enter data in format NAME COMMAND ARGS\nAvailable commands:\n" + global.GetCommandsHelp()
+	text := "Enter data in format " + strings.Join(d.ArgsInOrder(), " ") + "\nAvailable commands:\n" + global.GetCommandsHelp()
 	msg := tgbotapi.NewMessage(session.Message.Chat.ID, text)
 
 	d.handleNextTime(d, session)
@@ -37,6 +37,6 @@ func (d *CreateTemplate) HandleCommandRow(session *global.SessionData) (tgbotapi
 	), nil
 }
 
-func (_ *CreateTemplate) GetRequiredArgs() []string {
+func (_ *CreateTemplate) ArgsInOrder() []string {
 	return []string{"NAME", "COMMAND", "ARGS"}
 }

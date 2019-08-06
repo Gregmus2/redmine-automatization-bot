@@ -22,6 +22,6 @@ func (d *Hide) HandleCommandRow(session *global.SessionData) (tgbotapi.Chattable
 	return msg, nil
 }
 
-func (_ *Hide) GetRequiredArgs() []string {
+func (_ *Hide) ArgsInOrder() []string {
 	return []string{}
 }

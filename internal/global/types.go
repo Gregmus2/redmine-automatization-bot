@@ -8,7 +8,7 @@ import (
 type Handler interface {
 	Handle(session *SessionData) (tgbotapi.Chattable, error)
 	HandleCommandRow(session *SessionData) (tgbotapi.Chattable, error)
-	GetRequiredArgs() []string
+	ArgsInOrder() []string
 }
 
 type Storage interface {

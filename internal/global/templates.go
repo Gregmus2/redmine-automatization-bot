@@ -94,7 +94,7 @@ func (ts *TemplateStorage) GetTemplateNames(userId int) []string {
 
 	commandsCount := len(templates.TextCommand)
 	names := make([]string, commandsCount)
-	for name, _ := range templates.TextCommand {
+	for name := range templates.TextCommand {
 		names = append(names, name)
 	}
 

@@ -15,16 +15,16 @@ func init() {
 	global.RegisterCommand(&TimeEntry{}, "time_entry")
 }
 
-func (d *TimeEntry) Handle(session *global.SessionData) (tgbotapi.Chattable, error) {
-	text := "Enter data in format ISSUE_ID HOURS ACTIVITY_ID COMMENT\nAvailable activities:\n" + session.Api.Activities.ToText()
+func (t *TimeEntry) Handle(session *global.SessionData) (tgbotapi.Chattable, error) {
+	text := "Enter data in format " + strings.Join(t.ArgsInOrder(), " ") + "\nAvailable activities:\n" + session.Api.Activities.ToText()
 	msg := tgbotapi.NewMessage(session.Message.Chat.ID, text)
 
-	d.handleNextTime(d, session)
+	t.handleNextTime(t, session)
 
 	return msg, nil
 }
 
-func (d *TimeEntry) HandleCommandRow(session *global.SessionData) (tgbotapi.Chattable, error) {
+func (t *TimeEntry) HandleCommandRow(session *global.SessionData) (tgbotapi.Chattable, error) {
 	args := strings.Split(session.Message.Text, " ")
 	if len(args) < 3 {
 		msg := "not enough arguments, try again"
@@ -32,21 +32,21 @@ func (d *TimeEntry) HandleCommandRow(session *global.SessionData) (tgbotapi.Chat
 		return tgbotapi.NewMessage(session.Message.Chat.ID, msg), errors.New(msg)
 	}
 
-	d.handlePlaceholders(d, session)
+	t.handlePlaceholders(t, session)
 
 	issueId, err := strconv.ParseUint(args[0], 10, 0)
 	if err != nil {
-		return d.errorResponse(session.Message, "wrong ISSUE_ID argument, try again")
+		return t.errorResponse(session.Message, "wrong ISSUE_ID argument, try again")
 	}
 
 	hours, err := strconv.ParseFloat(args[1], 32)
 	if err != nil {
-		return d.errorResponse(session.Message, "wrong HOURS argument, try again.")
+		return t.errorResponse(session.Message, "wrong HOURS argument, try again.")
 	}
 
 	activityId, err := strconv.ParseUint(args[2], 10, 8)
 	if err != nil {
-		return d.errorResponse(session.Message, "wrong ACTIVITY_ID argument, try agai")
+		return t.errorResponse(session.Message, "wrong ACTIVITY_ID argument, try agai")
 	}
 
 	var comment string
@@ -70,7 +70,6 @@ func (d *TimeEntry) HandleCommandRow(session *global.SessionData) (tgbotapi.Chat
 	return tgbotapi.NewMessage(session.Message.Chat.ID, "Done"), nil
 }
 
-// todo need to move validate logic to some general method
-func (_ *TimeEntry) GetRequiredArgs() []string {
+func (t *TimeEntry) ArgsInOrder() []string {
 	return []string{"ISSUE_ID", "HOURS", "ACTIVITY_ID", "COMMENT"}
 }
