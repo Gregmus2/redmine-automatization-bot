@@ -9,8 +9,13 @@ import (
 )
 
 var Bot *tgbotapi.BotAPI
+var _testing = false
 
 func init() {
+	if _testing {
+		return
+	}
+
 	err := godotenv.Load()
 	if err != nil {
 		panic("Error loading .env file")
