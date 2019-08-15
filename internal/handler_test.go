@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/jarcoal/httpmock"
 	"log"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"redmine-automatization-bot/internal/global"
 	_ "redmine-automatization-bot/internal/handlers"
 	"redmine-automatization-bot/internal/mocks"
@@ -14,10 +16,13 @@ import (
 	"testing"
 )
 
+var _ = func() interface{} {
+	_testing = true
+	return nil
+}()
+
 func mockServer() *httptest.Server {
-	f := func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(200)
-		w.Header().Set("Content-Type", "application/xml")
+	return mocks.MockServer(func(w http.ResponseWriter, r *http.Request) {
 		timeEntry := redmine_responses.TimeEntriesResponse{
 			TimeEntries: []redmine_responses.TimeEntry{
 				{
@@ -48,36 +53,57 @@ func mockServer() *httptest.Server {
 		if err != nil {
 			log.Panic(err)
 		}
-	}
-
-	return httptest.NewServer(http.HandlerFunc(f))
+	})
 }
 
-var _ = func() interface{} {
-	_testing = true
-	return nil
-}()
+func mockClient() {
+	httpmock.Activate()
 
-func TestAuthorize(t *testing.T) {
+	res, _ := json.Marshal(tgbotapi.APIResponse{
+		Ok:          true,
+		Result:      nil,
+		ErrorCode:   0,
+		Description: "",
+		Parameters:  nil,
+	})
+
+	httpmock.RegisterResponder("POST", `=~^https://api.telegram.org/bottoken/\w+\z`,
+		httpmock.NewStringResponder(200, string(res)))
+}
+
+func TestMain(m *testing.M) {
+	mockClient()
+	defer httpmock.DeactivateAndReset()
+	Bot, err := tgbotapi.NewBotAPI("token")
+	if err != nil {
+		panic(err)
+	}
+	Bot.Debug = false
+
 	server := mockServer()
 	defer server.Close()
 
 	storage := mocks.NewMockStorage()
-	err := storage.Put(global.RedmineUrlsCollection, "1", []byte(server.URL))
+	err = storage.Put(global.RedmineUrlsCollection, "1", []byte(server.URL))
 	if err != nil {
-		t.Fatal("error on put in mock storage")
+		panic("error on put in mock storage")
 	}
 	err = storage.Put(global.ApiKeysCollection, "1", []byte("SomeTestKey"))
 	if err != nil {
-		t.Fatal("error on put in mock storage")
+		panic("error on put in mock storage")
 	}
 
 	us, err := global.NewUserStorage(storage)
 	if err != nil {
-		t.Fatal("NewUserStorage return error")
+		panic("NewUserStorage return error")
 	}
 
 	global.RA = global.NewRedmineApis(us)
+
+	os.Exit(m.Run())
+}
+
+func TestExistsAuthorize(t *testing.T) {
 	message := tgbotapi.Message{
 		From: &tgbotapi.User{
 			ID: 1,
@@ -93,3 +119,24 @@ func TestAuthorize(t *testing.T) {
 		t.Fatal("nil api returned")
 	}
 }
+
+//func TestNewAuthorize(t *testing.T) {
+//	t.Fatal(Bot)
+//	message := tgbotapi.Message{
+//		From: &tgbotapi.User{
+//			ID: 2,
+//		},
+//		Chat: &tgbotapi.Chat{
+//			ID: 1,
+//		},
+//	}
+//
+//	api, status := authorize(&message)
+//	if status == true {
+//		t.Fatal("expected not authorize, but authorize")
+//	}
+//
+//	if api != nil {
+//		t.Fatal("expected nil api var")
+//	}
+//}
