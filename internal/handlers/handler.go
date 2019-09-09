@@ -16,7 +16,7 @@ func (_ *handler) handlePlaceholders(h global.Handler, session *global.SessionDa
 		return nil, false
 	}
 
-	args := strings.Split(session.Message.Text, " ")
+	args := strings.Split(session.Message.Text, "|")
 	// собираем переменные аргументы, чтобы запросить у пользователя их значения
 	requiredArgs := h.ArgsInOrder()
 	missedArguments := make([]string, len(args))
@@ -27,7 +27,7 @@ func (_ *handler) handlePlaceholders(h global.Handler, session *global.SessionDa
 	}
 
 	global.Waiter.Set(session.Message.From.ID, func(message *tgbotapi.Message) tgbotapi.Chattable {
-		args := strings.Split(message.Text, " ")
+		args := strings.Split(message.Text, "|")
 		formatString := strings.Replace(session.Message.Text, "?", "%s", -1)
 		message.Text = fmt.Sprintf(formatString, convert.Iface(args)...)
 		tmpSession := global.SessionData{
@@ -46,7 +46,7 @@ func (_ *handler) handlePlaceholders(h global.Handler, session *global.SessionDa
 
 	return tgbotapi.NewMessage(
 		session.Message.Chat.ID,
-		"Please, send variable values: "+strings.Join(missedArguments, " "),
+		"Please, send variable values, separated by |: "+strings.Join(missedArguments, "|"),
 	), true
 }
 

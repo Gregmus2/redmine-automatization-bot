@@ -42,7 +42,7 @@ func RegisterCommand(handler Handler, command string) {
 func GetCommandsHelp() string {
 	help := ""
 	for command, handler := range CommandHandlers {
-		help = help + command + " " + strings.Join(handler.ArgsInOrder(), " ") + "\n"
+		help = help + command + "|" + strings.Join(handler.ArgsInOrder(), "|") + "\n"
 	}
 
 	return help

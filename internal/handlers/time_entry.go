@@ -16,7 +16,7 @@ func init() {
 }
 
 func (t *TimeEntry) Handle(session *global.SessionData) (tgbotapi.Chattable, error) {
-	text := "Enter data in format " + strings.Join(t.ArgsInOrder(), " ") + "\nAvailable activities:\n" + session.Api.Activities.ToText()
+	text := "Enter data in format " + strings.Join(t.ArgsInOrder(), "|") + "\nAvailable activities:\n" + session.Api.Activities.ToText()
 	msg := tgbotapi.NewMessage(session.Message.Chat.ID, text)
 
 	t.handleNextTime(t, session)
@@ -25,7 +25,7 @@ func (t *TimeEntry) Handle(session *global.SessionData) (tgbotapi.Chattable, err
 }
 
 func (t *TimeEntry) HandleCommandRow(session *global.SessionData) (tgbotapi.Chattable, error) {
-	args := strings.Split(session.Message.Text, " ")
+	args := strings.Split(session.Message.Text, "|")
 	if len(args) < 3 {
 		msg := "not enough arguments, try again"
 

@@ -13,7 +13,7 @@ func init() {
 }
 
 func (d *CreateTemplate) Handle(session *global.SessionData) (tgbotapi.Chattable, error) {
-	text := "Enter data in format " + strings.Join(d.ArgsInOrder(), " ") + "\nAvailable commands:\n" + global.GetCommandsHelp()
+	text := "Enter data in format " + strings.Join(d.ArgsInOrder(), "|") + "\nAvailable commands:\n" + global.GetCommandsHelp()
 	msg := tgbotapi.NewMessage(session.Message.Chat.ID, text)
 
 	d.handleNextTime(d, session)
@@ -22,10 +22,10 @@ func (d *CreateTemplate) Handle(session *global.SessionData) (tgbotapi.Chattable
 }
 
 func (d *CreateTemplate) HandleCommandRow(session *global.SessionData) (tgbotapi.Chattable, error) {
-	args := strings.Split(session.Message.Text, " ")
+	args := strings.Split(session.Message.Text, "|")
 	name := args[0]
 
-	err := global.TS.AddTemplate(session.Message.From.ID, name, strings.Join(args[1:], " "))
+	err := global.TS.AddTemplate(session.Message.From.ID, name, strings.Join(args[1:], "|"))
 	if err != nil {
 		return tgbotapi.NewMessage(session.Message.Chat.ID, err.Error()), err
 	}

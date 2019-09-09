@@ -108,7 +108,7 @@ func handleText(session *global.SessionData) {
 		return
 	}
 
-	commandIndex := strings.Index(commandString, " ")
+	commandIndex := strings.Index(commandString, "|")
 	var command string
 	if commandIndex == -1 {
 		command = commandString
