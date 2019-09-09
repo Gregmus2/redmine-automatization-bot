@@ -32,7 +32,10 @@ func (t *TimeEntry) HandleCommandRow(session *global.SessionData) (tgbotapi.Chat
 		return tgbotapi.NewMessage(session.Message.Chat.ID, msg), errors.New(msg)
 	}
 
-	t.handlePlaceholders(t, session)
+	msg, exist := t.handlePlaceholders(t, session)
+	if exist {
+		return msg, nil
+	}
 
 	issueId, err := strconv.ParseUint(args[0], 10, 0)
 	if err != nil {
